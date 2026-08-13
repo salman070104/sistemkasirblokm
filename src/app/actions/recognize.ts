@@ -29,7 +29,7 @@ INSTRUKSI:
 PENTING: Jawab HANYA dengan JSON, tanpa teks lain.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash",
+      model: "gemini-1.5-flash",
       contents: [
         {
           role: "user",
