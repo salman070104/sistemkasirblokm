@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { createProduct } from "../../actions/product";
+import { compressImage } from "@/lib/image-compression";
 import { ArrowLeft, Loader2, ImagePlus, Package } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -29,6 +30,14 @@ export default function AddProductPage() {
     setLoading(true);
     try {
       const formData = new FormData(e.currentTarget);
+      
+      // Compress image if present
+      const imageFile = formData.get("image") as File;
+      if (imageFile && imageFile.size > 0) {
+        const compressedImage = await compressImage(imageFile);
+        formData.set("image", compressedImage);
+      }
+
       const result = await createProduct(formData);
       
       if (result.success) {

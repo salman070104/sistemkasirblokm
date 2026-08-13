@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { updateProduct } from "@/app/actions/product";
+import { compressImage } from "@/lib/image-compression";
 import { ArrowLeft, Loader2, ImagePlus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -58,8 +59,13 @@ export default function EditProductForm({ product }: { product: ProductData }) {
       // If no new image selected and not removing, clear the file input from formData
       if (!newImageSelected) {
         formData.delete("image");
-        // Re-add as empty file so the server action doesn't error
-        formData.set("image", new File([], ""));
+      } else {
+        // Compress image if present
+        const imageFile = formData.get("image") as File;
+        if (imageFile && imageFile.size > 0) {
+          const compressedImage = await compressImage(imageFile);
+          formData.set("image", compressedImage);
+        }
       }
 
       const result = await updateProduct(product.id, formData);
