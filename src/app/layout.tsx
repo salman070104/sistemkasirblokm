@@ -13,10 +13,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import Script from "next/script";
+
 export const metadata: Metadata = {
   title: "Blok M Studio - Sistem Kasir",
   description: "Sistem aplikasi kasir (POS) modern oleh Blok M Studio",
-  viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#4f46e5",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -30,6 +40,22 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <main className="flex-1 overflow-auto bg-muted/30 pt-14 pb-20 lg:pt-0 lg:pb-0">
           {children}
         </main>
+        <Script id="register-sw" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(
+                  function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                  },
+                  function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                  }
+                );
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   );

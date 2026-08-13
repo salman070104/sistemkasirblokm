@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, Package, ShoppingCart, FileText, BarChart, Settings, Menu, X } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { InstallAppButton } from "./InstallAppButton";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -102,6 +103,9 @@ export function Sidebar() {
                 </div>
                 Pengaturan
               </Link>
+              <div className="mt-4">
+                <InstallAppButton />
+              </div>
             </nav>
           </div>
         </div>
@@ -200,6 +204,9 @@ export function Sidebar() {
             </div>
             Pengaturan
           </Link>
+          <div className="mt-2">
+            <InstallAppButton />
+          </div>
         </div>
       </div>
     </>
