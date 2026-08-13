@@ -85,6 +85,9 @@ export function Sidebar() {
                   </Link>
                 );
               })}
+              <div className="mt-2">
+                <InstallAppButton />
+              </div>
               <div className="my-2 h-px bg-border/60" />
               <Link
                 href="/settings"
@@ -103,9 +106,6 @@ export function Sidebar() {
                 </div>
                 Pengaturan
               </Link>
-              <div className="mt-4">
-                <InstallAppButton />
-              </div>
             </nav>
           </div>
         </div>
@@ -183,6 +183,9 @@ export function Sidebar() {
               </Link>
             );
           })}
+          <div className="mt-2 px-3">
+            <InstallAppButton />
+          </div>
         </nav>
 
         {/* Footer */}
@@ -204,9 +207,6 @@ export function Sidebar() {
             </div>
             Pengaturan
           </Link>
-          <div className="mt-2">
-            <InstallAppButton />
-          </div>
         </div>
       </div>
     </>
