@@ -357,7 +357,7 @@ export default function POSClient({ products }: { products: Product[] }) {
 
       {/* Checkout Dialog */}
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent className="sm:max-w-[440px] rounded-2xl max-h-[90vh] overflow-auto mx-4 sm:mx-auto">
+        <DialogContent className="sm:max-w-[440px] rounded-2xl max-h-[90vh] overflow-auto">
           {!successData ? (
             <>
               <DialogHeader>
