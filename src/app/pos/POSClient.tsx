@@ -194,7 +194,7 @@ export default function POSClient({ products }: { products: Product[] }) {
             <CameraScanner products={products} onProductFound={addToCart} />
           </div>
         </div>
-        <div className="flex-1 overflow-auto p-3 lg:p-4 pb-24 lg:pb-4">
+        <div className="flex-1 overflow-auto p-3 lg:p-4 pb-36 lg:pb-4">
           <div className={
             viewMode === "grid" 
               ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4"
@@ -317,7 +317,7 @@ export default function POSClient({ products }: { products: Product[] }) {
 
       {/* Mobile Cart Drawer */}
       {mobileCartOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
+        <div className="lg:hidden fixed inset-0 z-[60]">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileCartOpen(false)} />
           <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-float-in">
             <div className="flex items-center justify-between p-4 border-b border-border/60">
