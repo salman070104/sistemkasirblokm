@@ -147,7 +147,10 @@ export default function POSClient({ products }: { products: Product[] }) {
         <Button 
           className="w-full h-11 lg:h-12 text-sm lg:text-base font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all" 
           disabled={cart.length === 0}
-          onClick={() => setIsCheckoutOpen(true)}
+          onClick={() => {
+            setIsCheckoutOpen(true);
+            setMobileCartOpen(false);
+          }}
         >
           <Sparkles className="h-4 w-4 mr-2" />
           Bayar Sekarang
