@@ -146,7 +146,7 @@ export function Sidebar() {
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-tight">Blok M Studio</h1>
-            <p className="text-xs text-muted-foreground">Point of Sale</p>
+            <p className="text-xs text-muted-foreground">Sistem Kasir</p>
           </div>
         </div>
 

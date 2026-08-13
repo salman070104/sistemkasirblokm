@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Blok M Studio - Point of Sale",
+  title: "Blok M Studio - Sistem Kasir",
   description: "Sistem aplikasi kasir (POS) modern oleh Blok M Studio",
   viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };
