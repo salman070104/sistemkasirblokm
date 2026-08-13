@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { BarChart, TrendingUp, Calendar, ShoppingBag } from "lucide-react";
+import ExportPDFButton from "./ExportPDFButton";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,7 @@ export default async function ReportsPage() {
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Laporan Penjualan</h2>
           <p className="text-sm sm:text-base text-muted-foreground mt-1">Rekap penjualan harian toko Anda</p>
         </div>
+        <ExportPDFButton data={sortedDailyData} />
       </div>
 
       {/* Summary Cards */}

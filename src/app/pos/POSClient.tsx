@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Search, Plus, Minus, Trash2, CheckCircle2, ShoppingCart, Sparkles, Package, ChevronUp, X } from "lucide-react";
+import { Search, Plus, Minus, Trash2, CheckCircle2, ShoppingCart, Sparkles, Package, ChevronUp, X, LayoutGrid, List } from "lucide-react";
 import Image from "next/image";
 import { processTransaction } from "../actions/transaction";
 import CameraScanner from "./CameraScanner";
@@ -30,6 +30,7 @@ export default function POSClient({ products }: { products: Product[] }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [successData, setSuccessData] = useState<{ change: number, total: number } | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -172,14 +173,36 @@ export default function POSClient({ products }: { products: Product[] }) {
                 autoFocus
               />
             </div>
+            <div className="flex bg-muted/50 p-1 rounded-xl">
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="icon"
+                className={`h-8 w-8 lg:h-9 lg:w-9 rounded-lg ${viewMode === "grid" ? "bg-background shadow-sm" : ""}`}
+                onClick={() => setViewMode("grid")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="icon"
+                className={`h-8 w-8 lg:h-9 lg:w-9 rounded-lg ${viewMode === "list" ? "bg-background shadow-sm" : ""}`}
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
             <CameraScanner products={products} onProductFound={addToCart} />
           </div>
         </div>
         <div className="flex-1 overflow-auto p-3 lg:p-4 pb-24 lg:pb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4">
+          <div className={
+            viewMode === "grid" 
+              ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4"
+              : "flex flex-col gap-2 lg:gap-3"
+          }>
             {filteredProducts.map(product => {
               const inCart = cart.find(c => c.id === product.id);
-              return (
+              return viewMode === "grid" ? (
                 <div 
                   key={product.id} 
                   className={`product-card bg-card rounded-xl lg:rounded-2xl border shadow-sm overflow-hidden cursor-pointer flex flex-col relative ${
@@ -217,6 +240,45 @@ export default function POSClient({ products }: { products: Product[] }) {
                       <span className="text-[9px] lg:text-[11px] text-muted-foreground bg-muted px-1 lg:px-1.5 py-0.5 rounded-md">Stok: {product.stock}</span>
                     </div>
                   </div>
+                </div>
+              ) : (
+                <div 
+                  key={product.id} 
+                  className={`product-card bg-card rounded-xl border shadow-sm overflow-hidden cursor-pointer flex items-center relative p-2 gap-3 lg:gap-4 ${
+                    product.stock <= 0 ? "opacity-60 pointer-events-none" : ""
+                  } ${inCart ? "ring-2 ring-primary ring-offset-1" : "border-border/60 hover:border-primary/40"}`}
+                  onClick={() => addToCart(product)}
+                >
+                  <div className="relative h-12 w-12 lg:h-16 lg:w-16 rounded-lg bg-muted/50 overflow-hidden flex-shrink-0">
+                    {product.imageUrl ? (
+                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground/40">
+                        <Package className="h-5 w-5 lg:h-6 lg:w-6" />
+                      </div>
+                    )}
+                    {product.stock <= 0 && (
+                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                        <span className="bg-destructive text-destructive-foreground text-[8px] px-1 py-0.5 rounded font-bold">Habis</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm lg:text-base line-clamp-1" title={product.name}>{product.name}</h3>
+                    {product.sku && <p className="text-[10px] lg:text-[11px] text-muted-foreground font-mono">{product.sku}</p>}
+                  </div>
+                  
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className="font-bold text-primary text-sm lg:text-base">Rp {product.price.toLocaleString("id-ID")}</span>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">Stok: {product.stock}</span>
+                  </div>
+
+                  {inCart && (
+                    <div className="absolute -top-1 -right-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-md">
+                      {inCart.quantity}
+                    </div>
+                  )}
                 </div>
               );
             })}
