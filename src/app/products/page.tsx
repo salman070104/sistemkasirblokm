@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
   const products = await db.product.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
   });
 
   return (
