@@ -92,7 +92,8 @@ export default function AddProductPage() {
                   id="image" 
                   name="image" 
                   type="file" 
-                  accept="image/*" 
+                  accept="image/*"
+                  capture="environment" 
                   className="hidden"
                   onChange={handleImageChange}
                 />

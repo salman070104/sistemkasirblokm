@@ -134,6 +134,7 @@ export default function EditProductForm({ product }: { product: ProductData }) {
                   name="image"
                   type="file"
                   accept="image/*"
+                  capture="environment"
                   className="hidden"
                   onChange={handleImageChange}
                 />
