@@ -6,6 +6,7 @@ import { PlusCircle, Trash2, Edit, Package, Search } from "lucide-react";
 import Image from "next/image";
 import { deleteProduct } from "../actions/product";
 import { revalidatePath } from "next/cache";
+import { DeleteProductButton } from "./DeleteProductButton";
 
 export const dynamic = "force-dynamic";
 
@@ -98,15 +99,7 @@ export default async function ProductsPage() {
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <form action={async () => {
-                        "use server";
-                        await deleteProduct(product.id);
-                        revalidatePath("/products");
-                      }}>
-                        <Button type="submit" variant="ghost" size="icon" className="text-red-500/70 hover:text-red-600 hover:bg-red-500/10 rounded-lg">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </form>
+                      <DeleteProductButton productId={product.id} />
                     </div>
                   </TableCell>
                 </TableRow>

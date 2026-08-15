@@ -16,7 +16,7 @@ export async function createProduct(formData: FormData) {
     const existingProduct = await db.product.findFirst({
       where: {
         OR: [
-          { name: { equals: name, mode: 'insensitive' } },
+          { name: name },
           ...(sku ? [{ sku }] : [])
         ]
       }
@@ -57,6 +57,11 @@ export async function createProduct(formData: FormData) {
 
 export async function deleteProduct(id: number) {
   try {
+    const transactionCount = await db.transactionItem.count({ where: { productId: id } });
+    if (transactionCount > 0) {
+      return { success: false, error: "Produk tidak bisa dihapus karena sudah ada di riwayat transaksi." };
+    }
+
     const product = await db.product.findUnique({ where: { id } });
     if (product?.imageUrl && product.imageUrl.includes('vercel-storage.com')) {
       await del(product.imageUrl);
