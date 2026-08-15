@@ -170,9 +170,9 @@ export default function POSClient({ products }: { products: Product[] }) {
   );
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
       {/* Product Grid */}
-      <div className="flex-1 flex flex-col bg-muted/20">
+      <div className="flex-1 flex flex-col bg-muted/20 min-h-0">
         <div className="p-3 lg:p-4 border-b bg-background/80 backdrop-blur-sm">
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="relative flex-1">
@@ -207,7 +207,7 @@ export default function POSClient({ products }: { products: Product[] }) {
             <CameraScanner products={products} onProductFound={addToCart} />
           </div>
         </div>
-        <div className="flex-1 overflow-auto p-3 lg:p-4 pb-36 lg:pb-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 lg:p-4 pb-36 lg:pb-4 min-h-0">
           <div className={
             viewMode === "grid" 
               ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4"

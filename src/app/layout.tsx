@@ -37,7 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     >
       <body className="flex h-full min-h-full">
         <Sidebar />
-        <main className="flex-1 overflow-auto bg-muted/30 pt-14 pb-20 lg:pt-0 lg:pb-0">
+        <main className="flex-1 flex flex-col min-h-0 overflow-auto bg-muted/30 pt-14 pb-20 lg:pt-0 lg:pb-0">
           {children}
         </main>
         <Script id="register-sw" strategy="afterInteractive">
