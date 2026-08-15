@@ -13,6 +13,19 @@ export async function createProduct(formData: FormData) {
     const stock = parseInt(formData.get("stock") as string, 10);
     const image = formData.get("image") as File;
 
+    const existingProduct = await db.product.findFirst({
+      where: {
+        OR: [
+          { name: { equals: name, mode: 'insensitive' } },
+          ...(sku ? [{ sku }] : [])
+        ]
+      }
+    });
+
+    if (existingProduct) {
+      return { success: false, error: "Barang sudah ada di data." };
+    }
+
     let imageUrl = null;
 
     if (image && image.size > 0) {
