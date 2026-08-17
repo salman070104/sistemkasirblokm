@@ -59,6 +59,25 @@ PENTING: Jawab HANYA dengan JSON, tanpa teks lain.`;
     }
   } catch (error: any) {
     console.error("Gemini API error:", error);
-    return { success: false, error: error.message || "Gagal menghubungi Gemini API" };
+    
+    let errorMessage = "Gagal menghubungi Gemini API";
+    if (error.message) {
+      try {
+        const errorObj = JSON.parse(error.message);
+        if (errorObj?.error?.code === 503) {
+          errorMessage = "Server AI sedang sibuk (tingkat permintaan tinggi). Silakan coba lagi beberapa saat.";
+        } else if (errorObj?.error?.message) {
+          errorMessage = errorObj.error.message;
+        }
+      } catch {
+        if (error.message.includes("503") || error.message.includes("high demand")) {
+          errorMessage = "Server AI sedang sibuk (tingkat permintaan tinggi). Silakan coba lagi beberapa saat.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+    }
+
+    return { success: false, error: errorMessage };
   }
 }
