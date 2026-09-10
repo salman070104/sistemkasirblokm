@@ -478,7 +478,7 @@ export default function POSClient({ products }: { products: Product[] }) {
                 <div className="text-center space-y-0.5 pb-2">
                   <h3 className="font-extrabold text-sm tracking-tight text-neutral-950">BLOK M STUDIO</h3>
                   <p className="font-semibold text-[11px] text-neutral-800">PERCETAKAN & DIGITAL PRINTING</p>
-                  <p className="text-[10px] text-neutral-600">Jl. Melawai Raya No. 18, Blok M, Jaksel</p>
+                  <p className="text-[10px] text-neutral-600">Jl. Raya Ciledug-Ketanggungan</p>
                   <p className="text-[10px] text-neutral-600">Telp/WA: 0812-9876-5432</p>
                 </div>
 
@@ -564,7 +564,7 @@ export default function POSClient({ products }: { products: Product[] }) {
           <div style={{ textAlign: "center", marginBottom: "6px" }}>
             <div style={{ fontSize: "13px", fontWeight: "bold", letterSpacing: "0.5px" }}>BLOK M STUDIO</div>
             <div style={{ fontSize: "11px", fontWeight: "bold" }}>PERCETAKAN & DIGITAL PRINTING</div>
-            <div style={{ fontSize: "9px" }}>Jl. Melawai Raya No. 18, Blok M, Jakarta Selatan</div>
+            <div style={{ fontSize: "9px" }}>Jl. Raya Ciledug-Ketanggungan</div>
             <div style={{ fontSize: "9px" }}>Telp/WA: 0812-9876-5432</div>
           </div>
 
