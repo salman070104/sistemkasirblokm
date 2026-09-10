@@ -55,6 +55,7 @@ export default function POSClient({ products }: { products: Product[] }) {
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [printEnabled, setPrintEnabled] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [storeConfig, setStoreConfig] = useState({
     name: "BLOK M STUDIO",
@@ -71,6 +72,9 @@ export default function POSClient({ products }: { products: Product[] }) {
     const loadSettings = () => {
       const savedPrint = localStorage.getItem("pos_print_enabled");
       setPrintEnabled(savedPrint === "true");
+
+      const savedAutoPrint = localStorage.getItem("pos_auto_print");
+      setAutoPrint(savedAutoPrint === "true");
 
       const savedName = localStorage.getItem("pos_store_name");
       const savedTagline = localStorage.getItem("pos_store_tagline");
@@ -171,6 +175,13 @@ export default function POSClient({ products }: { products: Product[] }) {
       });
       setCart([]);
       setCashAmount("");
+
+      // Jika cetak struk aktif dan auto-print aktif, langsung cetak otomatis
+      if (printEnabled && autoPrint) {
+        setTimeout(() => {
+          window.print();
+        }, 150);
+      }
     } else {
       alert(res.error || "Gagal checkout");
     }

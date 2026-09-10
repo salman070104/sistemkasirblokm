@@ -9,6 +9,7 @@ import { Printer, Store, Check, Save, RotateCcw } from "lucide-react";
 
 export default function SettingsPage() {
   const [printEnabled, setPrintEnabled] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(false);
   const [paperWidth, setPaperWidth] = useState<"58mm" | "80mm">("58mm");
   const [storeName, setStoreName] = useState("BLOK M STUDIO");
   const [storeTagline, setStoreTagline] = useState("PERCETAKAN & DIGITAL PRINTING");
@@ -24,6 +25,13 @@ export default function SettingsPage() {
       setPrintEnabled(savedPrint === "true");
     } else {
       setPrintEnabled(false); // Default OFF jika belum punya printer
+    }
+
+    const savedAutoPrint = localStorage.getItem("pos_auto_print");
+    if (savedAutoPrint !== null) {
+      setAutoPrint(savedAutoPrint === "true");
+    } else {
+      setAutoPrint(false);
     }
 
     const savedWidth = localStorage.getItem("pos_paper_width");
@@ -47,6 +55,7 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     localStorage.setItem("pos_print_enabled", printEnabled ? "true" : "false");
+    localStorage.setItem("pos_auto_print", autoPrint ? "true" : "false");
     localStorage.setItem("pos_paper_width", paperWidth);
     localStorage.setItem("pos_store_name", storeName);
     localStorage.setItem("pos_store_tagline", storeTagline);
@@ -152,6 +161,41 @@ export default function SettingsPage() {
                 </span>
               </div>
             </div>
+
+            {/* TOGGLE AUTO PRINT */}
+            {printEnabled && (
+              <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2 animate-float-in">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="autoprint-toggle" className="font-semibold text-sm cursor-pointer text-foreground">
+                      ⚡ Cetak Otomatis (Auto-Print Saat Bayar)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Struk langsung tercetak otomatis begitu tombol Selesaikan Pembayaran diklik.
+                    </p>
+                  </div>
+                  <button
+                    id="autoprint-toggle"
+                    type="button"
+                    onClick={() => setAutoPrint(!autoPrint)}
+                    className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
+                      autoPrint ? "bg-emerald-600" : "bg-neutral-300 dark:bg-neutral-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out my-0.5 ${
+                        autoPrint ? "translate-x-6" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+                {autoPrint && (
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
+                    💡 Tips PC Windows: Aktifkan mode <code>--kiosk-printing</code> pada shortcut aplikasi agar dialog cetak tidak muncul sama sekali!
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* UKURAN KERTAS */}
             <div className="space-y-2">
