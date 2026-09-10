@@ -54,7 +54,12 @@ export async function processTransaction(cartItems: CartItem[], cashAmount: numb
     revalidatePath("/pos");
     revalidatePath("/");
 
-    return { success: true, transactionId: transaction.id };
+    return { 
+      success: true, 
+      transactionId: transaction.id,
+      receiptNumber: transaction.receiptNumber,
+      createdAt: transaction.createdAt
+    };
   } catch (error) {
     console.error("Error processing transaction:", error);
     return { success: false, error: "Gagal memproses transaksi" };

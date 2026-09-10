@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Search, Plus, Minus, Trash2, CheckCircle2, ShoppingCart, Sparkles, Package, ChevronUp, X, LayoutGrid, List } from "lucide-react";
+import { Search, Plus, Minus, Trash2, CheckCircle2, ShoppingCart, Sparkles, Package, ChevronUp, X, LayoutGrid, List, Printer } from "lucide-react";
 import Image from "next/image";
 import { processTransaction } from "../actions/transaction";
 import CameraScanner from "./CameraScanner";
@@ -23,13 +23,35 @@ type CartItem = Product & {
   quantity: number;
 };
 
+export type ReceiptData = {
+  receiptNumber: string;
+  date: Date;
+  items: { name: string; quantity: number; price: number }[];
+  total: number;
+  cash: number;
+  change: number;
+};
+
+const DEMO_RECEIPT: ReceiptData = {
+  receiptNumber: "TRX-20260910-8821",
+  date: new Date(),
+  items: [
+    { name: "Cetak Spanduk Flexi 280g (3x1m)", quantity: 1, price: 60000 },
+    { name: "Print A3+ Art Paper 260g (Brosur)", quantity: 5, price: 8000 },
+    { name: "Jilid Spiral Kawat + Mika", quantity: 2, price: 15000 },
+  ],
+  total: 130000,
+  cash: 150000,
+  change: 20000,
+};
+
 export default function POSClient({ products }: { products: Product[] }) {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [successData, setSuccessData] = useState<{ change: number, total: number } | null>(null);
+  const [successData, setSuccessData] = useState<ReceiptData | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const router = useRouter();
@@ -90,11 +112,19 @@ export default function POSClient({ products }: { products: Product[] }) {
       price: item.price
     }));
 
+    const currentItems = cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
     const res = await processTransaction(items, cashNum);
     setIsProcessing(false);
 
     if (res.success) {
-      setSuccessData({ change: changeAmount, total: totalAmount });
+      setSuccessData({ 
+        receiptNumber: res.receiptNumber || `TRX-${Date.now()}`,
+        date: res.createdAt ? new Date(res.createdAt) : new Date(),
+        items: currentItems,
+        total: totalAmount,
+        cash: cashNum,
+        change: changeAmount 
+      });
       setCart([]);
       setCashAmount("");
     } else {
@@ -205,6 +235,19 @@ export default function POSClient({ products }: { products: Product[] }) {
               </Button>
             </div>
             <CameraScanner products={products} onProductFound={addToCart} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSuccessData(DEMO_RECEIPT);
+                setIsCheckoutOpen(true);
+              }}
+              className="h-8 lg:h-9 rounded-xl text-xs gap-1.5 border-dashed border-primary/40 hover:bg-primary/5 text-primary font-medium"
+              title="Lihat Contoh Format Struk Blok M Studio"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Contoh Struk
+            </Button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 lg:p-4 pb-36 lg:pb-4 min-h-0">
@@ -419,33 +462,167 @@ export default function POSClient({ products }: { products: Product[] }) {
               </DialogFooter>
             </>
           ) : (
-            <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
-              <div className="h-16 w-16 lg:h-20 lg:w-20 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center animate-float-in">
-                <CheckCircle2 className="h-10 w-10 lg:h-12 lg:w-12" />
+            <div className="py-3 flex flex-col items-center justify-center space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <h2 className="text-lg font-bold text-foreground">
+                  {successData.receiptNumber.includes("8821") ? "Contoh Struk Percetakan" : "Transaksi Berhasil! 🎉"}
+                </h2>
               </div>
-              <h2 className="text-xl lg:text-2xl font-bold animate-float-in-delay-1">Transaksi Berhasil! 🎉</h2>
-              <div className="bg-muted/50 w-full p-4 lg:p-5 rounded-xl space-y-3 mt-4 text-left animate-float-in-delay-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground text-sm">Total Tagihan</span>
-                  <span className="font-medium">Rp {successData.total.toLocaleString("id-ID")}</span>
+
+              {/* ─── Kertas Struk Thermal Preview (Blok M Studio Percetakan) ─── */}
+              <div className="w-full max-w-[340px] bg-white text-neutral-900 p-4 rounded-xl border border-dashed border-neutral-300 shadow-sm font-mono text-xs leading-relaxed text-left">
+                {/* Header Toko */}
+                <div className="text-center space-y-0.5 pb-2">
+                  <h3 className="font-extrabold text-sm tracking-tight text-neutral-950">BLOK M STUDIO</h3>
+                  <p className="font-semibold text-[11px] text-neutral-800">PERCETAKAN & DIGITAL PRINTING</p>
+                  <p className="text-[10px] text-neutral-600">Jl. Melawai Raya No. 18, Blok M, Jaksel</p>
+                  <p className="text-[10px] text-neutral-600">Telp/WA: 0812-9876-5432</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground text-sm">Uang Tunai</span>
-                  <span className="font-medium">Rp {(successData.total + successData.change).toLocaleString("id-ID")}</span>
+
+                <div className="border-b border-dashed border-neutral-400 my-2" />
+
+                {/* Metadata Transaksi */}
+                <div className="text-[10px] text-neutral-600 space-y-0.5">
+                  <div className="flex justify-between">
+                    <span>No: {successData.receiptNumber}</span>
+                    <span>Kasir: Salman</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tgl: {new Date(successData.date).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</span>
+                    <span>Tunai</span>
+                  </div>
                 </div>
-                <div className="flex justify-between border-t pt-3 mt-3">
-                  <span className="font-bold">Kembalian</span>
-                  <span className="font-bold text-lg lg:text-xl text-emerald-600">Rp {successData.change.toLocaleString("id-ID")}</span>
+
+                <div className="border-b border-dashed border-neutral-400 my-2" />
+
+                {/* Daftar Barang Belanjaan */}
+                <div className="space-y-1.5 py-1">
+                  {successData.items.map((item, idx) => (
+                    <div key={idx} className="space-y-0.5">
+                      <div className="font-medium text-neutral-900 line-clamp-1">{item.name}</div>
+                      <div className="flex justify-between text-neutral-600 text-[10px]">
+                        <span>{item.quantity} x Rp {item.price.toLocaleString("id-ID")}</span>
+                        <span className="font-semibold text-neutral-950">Rp {(item.quantity * item.price).toLocaleString("id-ID")}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-b border-dashed border-neutral-400 my-2" />
+
+                {/* Total & Pembayaran */}
+                <div className="space-y-1 text-[11px] pt-1">
+                  <div className="flex justify-between font-bold text-xs text-neutral-950">
+                    <span>TOTAL</span>
+                    <span>Rp {successData.total.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between text-neutral-700">
+                    <span>Bayar (Tunai)</span>
+                    <span>Rp {successData.cash.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between text-neutral-700 font-medium">
+                    <span>Kembalian</span>
+                    <span className="text-emerald-700 font-bold">Rp {successData.change.toLocaleString("id-ID")}</span>
+                  </div>
+                </div>
+
+                <div className="border-b border-dashed border-neutral-400 my-2" />
+
+                {/* Footer Struk */}
+                <div className="text-center space-y-1 text-[9px] text-neutral-600 pt-1">
+                  <p className="font-bold text-neutral-800">Terima Kasih Atas Kunjungan Anda!</p>
+                  <p>Simpan nota ini sebagai bukti sah pembayaran & pengambilan hasil cetakan.</p>
+                  <p className="tracking-widest font-mono text-[8px] pt-0.5">*** LUNAS ***</p>
                 </div>
               </div>
-              <div className="w-full flex gap-2 mt-4 pt-4 border-t animate-float-in-delay-3">
-                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => window.print()}>🖨️ Cetak Struk</Button>
-                <Button className="flex-1 rounded-xl shadow-lg shadow-primary/20" onClick={handleCloseSuccess}>Transaksi Baru</Button>
+
+              {/* Action Buttons */}
+              <div className="w-full flex gap-2 pt-2">
+                <Button 
+                  variant="default" 
+                  className="flex-1 rounded-xl shadow-md gap-1.5 bg-primary text-primary-foreground font-semibold" 
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-4 w-4" />
+                  Cetak Struk (58mm)
+                </Button>
+                <Button variant="outline" className="rounded-xl px-4" onClick={handleCloseSuccess}>
+                  Tutup
+                </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ═══════ PRINTABLE THERMAL RECEIPT CONTAINER (Visible only during window.print) ═══════ */}
+      {successData && (
+        <div id="printable-receipt" style={{ display: "none" }}>
+          <div style={{ textAlign: "center", marginBottom: "6px" }}>
+            <div style={{ fontSize: "13px", fontWeight: "bold", letterSpacing: "0.5px" }}>BLOK M STUDIO</div>
+            <div style={{ fontSize: "11px", fontWeight: "bold" }}>PERCETAKAN & DIGITAL PRINTING</div>
+            <div style={{ fontSize: "9px" }}>Jl. Melawai Raya No. 18, Blok M, Jakarta Selatan</div>
+            <div style={{ fontSize: "9px" }}>Telp/WA: 0812-9876-5432</div>
+          </div>
+
+          <div style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
+
+          <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between", fontSize: "9px" }}>
+            <span>No: {successData.receiptNumber}</span>
+            <span>Kasir: Salman</span>
+          </div>
+          <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between", fontSize: "9px" }}>
+            <span>Tgl: {new Date(successData.date).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</span>
+            <span>Tunai</span>
+          </div>
+
+          <div style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
+
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
+            <tbody>
+              {successData.items.map((item, idx) => (
+                <tr key={idx} style={{ verticalAlign: "top" }}>
+                  <td style={{ padding: "2px 0" }}>
+                    <div style={{ fontWeight: 500 }}>{item.name}</div>
+                    <div style={{ fontSize: "9px", color: "#333" }}>
+                      {item.quantity} x {item.price.toLocaleString("id-ID")}
+                    </div>
+                  </td>
+                  <td style={{ textAlign: "right", padding: "2px 0", whiteSpace: "nowrap", fontWeight: "bold" }}>
+                    {(item.quantity * item.price).toLocaleString("id-ID")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
+
+          <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontWeight: "bold", padding: "2px 0" }}>
+            <span>TOTAL</span>
+            <span>Rp {successData.total.toLocaleString("id-ID")}</span>
+          </div>
+          <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}>
+            <span>Bayar</span>
+            <span>Rp {successData.cash.toLocaleString("id-ID")}</span>
+          </div>
+          <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}>
+            <span>Kembalian</span>
+            <span>Rp {successData.change.toLocaleString("id-ID")}</span>
+          </div>
+
+          <div style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
+
+          <div style={{ textAlign: "center", fontSize: "9px", marginTop: "6px", lineHeight: "1.2" }}>
+            <div style={{ fontWeight: "bold" }}>Terima Kasih Telah Berkunjung!</div>
+            <div style={{ marginTop: "2px" }}>Simpan nota ini sebagai bukti sah pengambilan barang.</div>
+            <div style={{ marginTop: "4px", letterSpacing: "2px" }}>*** LUNAS ***</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
