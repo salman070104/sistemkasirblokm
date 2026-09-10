@@ -471,14 +471,13 @@ export default function POSClient({ products }: { products: Product[] }) {
                       </div>
                     )}
                   </div>
-                  <div className="p-2 lg:p-3 flex-1 flex flex-col justify-between">
+                  <div className="p-2.5 lg:p-3 flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className="font-semibold text-xs lg:text-sm line-clamp-2" title={product.name}>{product.name}</h3>
+                      <h3 className="font-semibold text-xs lg:text-sm line-clamp-2 leading-snug" title={product.name}>{product.name}</h3>
                       {product.sku && <p className="text-[10px] lg:text-[11px] text-muted-foreground mt-0.5 font-mono">{product.sku}</p>}
                     </div>
-                    <div className="mt-1.5 lg:mt-2 flex items-end justify-between">
+                    <div className="mt-2">
                       <span className="font-bold text-primary text-xs lg:text-sm">Rp {product.price.toLocaleString("id-ID")}</span>
-                      <span className="text-[9px] lg:text-[11px] text-muted-foreground bg-muted px-1 lg:px-1.5 py-0.5 rounded-md">Stok: {product.stock}</span>
                     </div>
                   </div>
                 </div>
@@ -510,9 +509,8 @@ export default function POSClient({ products }: { products: Product[] }) {
                     {product.sku && <p className="text-[10px] lg:text-[11px] text-muted-foreground font-mono">{product.sku}</p>}
                   </div>
                   
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="flex items-center flex-shrink-0 pr-2">
                     <span className="font-bold text-primary text-sm lg:text-base">Rp {product.price.toLocaleString("id-ID")}</span>
-                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">Stok: {product.stock}</span>
                   </div>
 
                   {inCart && (
