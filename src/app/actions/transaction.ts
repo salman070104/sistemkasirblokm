@@ -65,3 +65,58 @@ export async function processTransaction(cartItems: CartItem[], cashAmount: numb
     return { success: false, error: "Gagal memproses transaksi" };
   }
 }
+
+export async function deleteTransaction(transactionId: number, restoreStock: boolean = true) {
+  try {
+    const trx = await db.transaction.findUnique({
+      where: { id: transactionId },
+      include: { items: true }
+    });
+
+    if (!trx) {
+      return { success: false, error: "Transaksi tidak ditemukan" };
+    }
+
+    await db.$transaction(async (tx) => {
+      // Kembalikan stok produk jika restoreStock bernilai true
+      if (restoreStock) {
+        for (const item of trx.items) {
+          if (item.productId) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                stock: {
+                  increment: item.quantity
+                }
+              }
+            }).catch(() => {
+              // Jika produk sudah dihapus dari master data, abaikan penambahan stok
+            });
+          }
+        }
+      }
+
+      // Hapus item-item transaksi terlebih dahulu
+      await tx.transactionItem.deleteMany({
+        where: { transactionId }
+      });
+
+      // Hapus transaksi
+      await tx.transaction.delete({
+        where: { id: transactionId }
+      });
+    });
+
+    revalidatePath("/transactions");
+    revalidatePath("/products");
+    revalidatePath("/reports");
+    revalidatePath("/pos");
+    revalidatePath("/");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting transaction:", error);
+    return { success: false, error: "Gagal menghapus transaksi" };
+  }
+}
+
