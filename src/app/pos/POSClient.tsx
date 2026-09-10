@@ -10,6 +10,7 @@ import Image from "next/image";
 import { processTransaction } from "../actions/transaction";
 import CameraScanner from "./CameraScanner";
 import { getConnectedUsbDevice, buildEscPosBytes, sendToUsbPrinter } from "@/lib/usbPrinter";
+import { soundManager } from "@/lib/soundEffects";
 
 type Product = {
   id: number;
@@ -28,6 +29,11 @@ export type ReceiptData = {
   receiptNumber: string;
   date: Date;
   items: { name: string; quantity: number; price: number }[];
+  subtotal?: number;
+  taxAmount?: number;
+  taxRate?: number;
+  serviceFee?: number;
+  cashierName?: string;
   total: number;
   cash: number;
   change: number;
@@ -44,6 +50,7 @@ const DEMO_RECEIPT: ReceiptData = {
   total: 130000,
   cash: 150000,
   change: 20000,
+  cashierName: "Salman",
 };
 
 export default function POSClient({ products }: { products: Product[] }) {
@@ -58,6 +65,16 @@ export default function POSClient({ products }: { products: Product[] }) {
   const [printEnabled, setPrintEnabled] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+
+  // Pengaturan Profil & Pajak
+  const [cashierName, setCashierName] = useState("Salman");
+  const [taxEnabled, setTaxEnabled] = useState(false);
+  const [taxRate, setTaxRate] = useState(11);
+  const [serviceFeeEnabled, setServiceFeeEnabled] = useState(false);
+  const [serviceFeeAmount, setServiceFeeAmount] = useState(0);
+  const [serviceFeeType, setServiceFeeType] = useState<"fixed" | "percent">("fixed");
+  const [quickCashEnabled, setQuickCashEnabled] = useState(true);
+
   const [storeConfig, setStoreConfig] = useState({
     name: "BLOK M STUDIO",
     tagline: "PERCETAKAN & DIGITAL PRINTING",
@@ -83,6 +100,27 @@ export default function POSClient({ products }: { products: Product[] }) {
       const savedPhone = localStorage.getItem("pos_store_phone");
       const savedFooter = localStorage.getItem("pos_store_footer");
       const savedWidth = localStorage.getItem("pos_paper_width");
+
+      const savedCashier = localStorage.getItem("pos_cashier_name");
+      if (savedCashier) setCashierName(savedCashier);
+
+      const savedTax = localStorage.getItem("pos_tax_enabled");
+      setTaxEnabled(savedTax === "true");
+
+      const savedRate = localStorage.getItem("pos_tax_rate");
+      if (savedRate) setTaxRate(parseFloat(savedRate) || 11);
+
+      const savedFee = localStorage.getItem("pos_service_fee_enabled");
+      setServiceFeeEnabled(savedFee === "true");
+
+      const savedFeeAmount = localStorage.getItem("pos_service_fee_amount");
+      if (savedFeeAmount) setServiceFeeAmount(parseFloat(savedFeeAmount) || 0);
+
+      const savedFeeType = localStorage.getItem("pos_service_fee_type");
+      if (savedFeeType === "percent" || savedFeeType === "fixed") setServiceFeeType(savedFeeType);
+
+      const savedQuickCash = localStorage.getItem("pos_quick_cash_enabled");
+      if (savedQuickCash !== null) setQuickCashEnabled(savedQuickCash === "true");
 
       setStoreConfig({
         name: savedName || "BLOK M STUDIO",
@@ -119,23 +157,34 @@ export default function POSClient({ products }: { products: Product[] }) {
   );
 
   const addToCart = (product: Product) => {
+    if (product.stock <= 0) {
+      soundManager.playErrorBeep();
+      return;
+    }
+    soundManager.playBarcodeBeep();
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock) return prev;
+        if (existing.quantity >= product.stock) {
+          soundManager.playErrorBeep();
+          return prev;
+        }
         return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
-      if (product.stock <= 0) return prev;
       return [...prev, { ...product, quantity: 1 }];
     });
   };
 
   const updateQuantity = (id: number, delta: number) => {
+    soundManager.playBarcodeBeep();
     setCart(prev => prev.map(item => {
       if (item.id === id) {
         const newQty = item.quantity + delta;
         if (newQty <= 0) return item;
-        if (newQty > item.stock) return item;
+        if (newQty > item.stock) {
+          soundManager.playErrorBeep();
+          return item;
+        }
         return { ...item, quantity: newQty };
       }
       return item;
@@ -146,13 +195,22 @@ export default function POSClient({ products }: { products: Product[] }) {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
-  const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Kalkulasi Subtotal, PPN, Biaya Layanan, dan Total
+  const subtotalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const taxAmount = taxEnabled ? Math.round((subtotalAmount * taxRate) / 100) : 0;
+  const serviceFeeCalc = serviceFeeEnabled 
+    ? (serviceFeeType === "percent" ? Math.round((subtotalAmount * serviceFeeAmount) / 100) : serviceFeeAmount)
+    : 0;
+  const totalAmount = subtotalAmount + taxAmount + serviceFeeCalc;
   const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
   const cashNum = parseInt(cashAmount) || 0;
   const changeAmount = cashNum - totalAmount;
 
   const handleCheckout = async () => {
-    if (changeAmount < 0) return;
+    if (changeAmount < 0) {
+      soundManager.playErrorBeep();
+      return;
+    }
     setIsProcessing(true);
 
     const items = cart.map(item => ({
@@ -166,10 +224,16 @@ export default function POSClient({ products }: { products: Product[] }) {
     setIsProcessing(false);
 
     if (res.success) {
+      soundManager.playSuccessChime();
       const newReceipt: ReceiptData = { 
         receiptNumber: res.receiptNumber || `TRX-${Date.now()}`,
         date: res.createdAt ? new Date(res.createdAt) : new Date(),
         items: currentItems,
+        subtotal: subtotalAmount,
+        taxAmount: taxAmount,
+        taxRate: taxRate,
+        serviceFee: serviceFeeCalc,
+        cashierName: cashierName,
         total: totalAmount,
         cash: cashNum,
         change: changeAmount 
@@ -186,6 +250,7 @@ export default function POSClient({ products }: { products: Product[] }) {
         }, 150);
       }
     } else {
+      soundManager.playErrorBeep();
       alert(res.error || "Gagal checkout");
     }
   };
@@ -267,6 +332,26 @@ export default function POSClient({ products }: { products: Product[] }) {
       </div>
 
       <div className="p-4 lg:p-5 border-t border-border/60 bg-muted/20 space-y-3 lg:space-y-4">
+        {(taxEnabled || serviceFeeEnabled) && (
+          <div className="space-y-1.5 text-xs text-muted-foreground pb-2 border-b border-border/60">
+            <div className="flex justify-between">
+              <span>Subtotal ({totalItems} item)</span>
+              <span>Rp {subtotalAmount.toLocaleString("id-ID")}</span>
+            </div>
+            {taxEnabled && (
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                <span>PPN ({taxRate}%)</span>
+                <span>Rp {taxAmount.toLocaleString("id-ID")}</span>
+              </div>
+            )}
+            {serviceFeeEnabled && (
+              <div className="flex justify-between text-blue-600 dark:text-blue-400 font-medium">
+                <span>Biaya Layanan</span>
+                <span>Rp {serviceFeeCalc.toLocaleString("id-ID")}</span>
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground font-medium text-sm lg:text-base">Total</span>
           <span className="text-xl lg:text-2xl font-bold tracking-tight">Rp {totalAmount.toLocaleString("id-ID")}</span>
@@ -524,6 +609,23 @@ export default function POSClient({ products }: { products: Product[] }) {
                   <span className="font-medium text-muted-foreground text-sm">Total Tagihan</span>
                   <span className="text-xl lg:text-2xl font-bold text-primary">Rp {totalAmount.toLocaleString("id-ID")}</span>
                 </div>
+
+                {(taxEnabled || serviceFeeEnabled) && (
+                  <div className="text-xs text-muted-foreground -mt-2 px-1 flex flex-wrap gap-x-3 gap-y-1">
+                    <span>Termasuk:</span>
+                    {taxEnabled && (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                        PPN {taxRate}% (Rp {taxAmount.toLocaleString("id-ID")})
+                      </span>
+                    )}
+                    {serviceFeeEnabled && (
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">
+                        Biaya Layanan (Rp {serviceFeeCalc.toLocaleString("id-ID")})
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">Uang Tunai (Rp)</label>
                   <Input 
@@ -543,16 +645,20 @@ export default function POSClient({ products }: { products: Product[] }) {
                     </span>
                   </div>
                 )}
-                <div className="grid grid-cols-4 gap-2">
-                  {[10000, 20000, 50000, 100000].map(amt => (
-                    <Button key={amt} variant="outline" type="button" onClick={() => setCashAmount(amt.toString())} className="text-xs rounded-xl h-10 font-semibold hover:bg-primary/5 hover:border-primary/30">
-                      {amt >= 1000 ? `${amt / 1000}k` : amt}
+                {quickCashEnabled && (
+                  <>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[10000, 20000, 50000, 100000].map(amt => (
+                        <Button key={amt} variant="outline" type="button" onClick={() => setCashAmount(amt.toString())} className="text-xs rounded-xl h-10 font-semibold hover:bg-primary/5 hover:border-primary/30">
+                          {amt >= 1000 ? `${amt / 1000}k` : amt}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button variant="outline" type="button" onClick={() => setCashAmount(totalAmount.toString())} className="text-sm font-semibold bg-primary/5 border-primary/15 hover:bg-primary/10 rounded-xl h-10">
+                      💰 Uang Pas (Rp {totalAmount.toLocaleString("id-ID")})
                     </Button>
-                  ))}
-                </div>
-                <Button variant="outline" type="button" onClick={() => setCashAmount(totalAmount.toString())} className="text-sm font-semibold bg-primary/5 border-primary/15 hover:bg-primary/10 rounded-xl h-10">
-                  💰 Uang Pas
-                </Button>
+                  </>
+                )}
               </div>
               <DialogFooter className="gap-2 flex-col sm:flex-row">
                 <Button variant="outline" onClick={() => setIsCheckoutOpen(false)} className="rounded-xl w-full sm:w-auto">Batal</Button>
@@ -632,7 +738,7 @@ export default function POSClient({ products }: { products: Product[] }) {
                     <div className="text-[10px] text-neutral-600 space-y-0.5">
                       <div className="flex justify-between">
                         <span>No: {successData.receiptNumber}</span>
-                        <span>Kasir: Salman</span>
+                        <span>Kasir: {successData.cashierName || cashierName}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Tgl: {new Date(successData.date).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</span>
@@ -656,6 +762,29 @@ export default function POSClient({ products }: { products: Product[] }) {
                     </div>
 
                     <div className="border-b border-dashed border-neutral-400 my-2" />
+
+                    {/* Subtotal, Pajak, Biaya jika ada */}
+                    {((successData.taxAmount && successData.taxAmount > 0) || (successData.serviceFee && successData.serviceFee > 0)) && (
+                      <div className="space-y-0.5 text-[10px] text-neutral-700 pb-1">
+                        <div className="flex justify-between">
+                          <span>Subtotal</span>
+                          <span>Rp {(successData.subtotal || successData.items.reduce((s, i) => s + (i.quantity * i.price), 0)).toLocaleString("id-ID")}</span>
+                        </div>
+                        {successData.taxAmount && successData.taxAmount > 0 ? (
+                          <div className="flex justify-between text-emerald-700">
+                            <span>PPN ({successData.taxRate || 11}%)</span>
+                            <span>Rp {successData.taxAmount.toLocaleString("id-ID")}</span>
+                          </div>
+                        ) : null}
+                        {successData.serviceFee && successData.serviceFee > 0 ? (
+                          <div className="flex justify-between text-blue-700">
+                            <span>Biaya Layanan</span>
+                            <span>Rp {successData.serviceFee.toLocaleString("id-ID")}</span>
+                          </div>
+                        ) : null}
+                        <div className="border-b border-dashed border-neutral-300 my-1" />
+                      </div>
+                    )}
 
                     {/* Total & Pembayaran */}
                     <div className="space-y-1 text-[11px] pt-1">
@@ -718,7 +847,7 @@ export default function POSClient({ products }: { products: Product[] }) {
 
           <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between", fontSize: "9px" }}>
             <span>No: {successData.receiptNumber}</span>
-            <span>Kasir: Salman</span>
+            <span>Kasir: {successData.cashierName || cashierName}</span>
           </div>
           <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between", fontSize: "9px" }}>
             <span>Tgl: {new Date(successData.date).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</span>
@@ -746,6 +875,28 @@ export default function POSClient({ products }: { products: Product[] }) {
           </table>
 
           <div style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
+
+          {((successData.taxAmount && successData.taxAmount > 0) || (successData.serviceFee && successData.serviceFee > 0)) && (
+            <div style={{ fontSize: "9px", margin: "2px 0" }}>
+              <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Subtotal</span>
+                <span>Rp {(successData.subtotal || successData.items.reduce((s, i) => s + (i.quantity * i.price), 0)).toLocaleString("id-ID")}</span>
+              </div>
+              {successData.taxAmount && successData.taxAmount > 0 ? (
+                <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>PPN ({successData.taxRate || 11}%)</span>
+                  <span>Rp {successData.taxAmount.toLocaleString("id-ID")}</span>
+                </div>
+              ) : null}
+              {successData.serviceFee && successData.serviceFee > 0 ? (
+                <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Biaya Layanan</span>
+                  <span>Rp {successData.serviceFee.toLocaleString("id-ID")}</span>
+                </div>
+              ) : null}
+              <div style={{ borderTop: "1px dashed #000", margin: "2px 0" }} />
+            </div>
+          )}
 
           <div className="receipt-flex" style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontWeight: "bold", padding: "2px 0" }}>
             <span>TOTAL</span>

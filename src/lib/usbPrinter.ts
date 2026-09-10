@@ -16,6 +16,11 @@ export interface ReceiptPrintData {
   total: number;
   cash: number;
   change: number;
+  subtotal?: number;
+  taxAmount?: number;
+  taxRate?: number;
+  serviceFee?: number;
+  cashierName?: string;
 }
 
 export function isWebUsbSupported(): boolean {
@@ -121,7 +126,7 @@ export function buildEscPosBytes(data: ReceiptPrintData, config: PrinterStoreCon
   parts.push(0x1b, 0x61, 0x00);
   parts.push(...encoder.encode(`No : ${data.receiptNumber}\n`));
   parts.push(...encoder.encode(`Tgl: ${new Date(data.date).toLocaleString("id-ID")}\n`));
-  parts.push(...encoder.encode(`Kas: Kasir 1\n`));
+  parts.push(...encoder.encode(`Kas: ${data.cashierName || "Kasir 1"}\n`));
   parts.push(...encoder.encode("--------------------------------\n"));
 
   // Items
@@ -135,6 +140,27 @@ export function buildEscPosBytes(data: ReceiptPrintData, config: PrinterStoreCon
   }
 
   parts.push(...encoder.encode("--------------------------------\n"));
+
+  // Subtotal & Pajak jika ada
+  if ((data.taxAmount && data.taxAmount > 0) || (data.serviceFee && data.serviceFee > 0)) {
+    const subVal = data.subtotal || data.items.reduce((s, i) => s + (i.quantity * i.price), 0);
+    const subStr = `Rp ${subVal.toLocaleString("id-ID")}`;
+    parts.push(...encoder.encode("Subtotal" + " ".repeat(Math.max(1, 32 - 8 - subStr.length)) + subStr + "\n"));
+
+    if (data.taxAmount && data.taxAmount > 0) {
+      const taxLabel = `PPN (${data.taxRate || 11}%)`;
+      const taxStr = `Rp ${data.taxAmount.toLocaleString("id-ID")}`;
+      parts.push(...encoder.encode(taxLabel + " ".repeat(Math.max(1, 32 - taxLabel.length - taxStr.length)) + taxStr + "\n"));
+    }
+
+    if (data.serviceFee && data.serviceFee > 0) {
+      const feeLabel = "Biaya Layanan";
+      const feeStr = `Rp ${data.serviceFee.toLocaleString("id-ID")}`;
+      parts.push(...encoder.encode(feeLabel + " ".repeat(Math.max(1, 32 - feeLabel.length - feeStr.length)) + feeStr + "\n"));
+    }
+
+    parts.push(...encoder.encode("--------------------------------\n"));
+  }
 
   // Totals
   const totStr = `Rp ${data.total.toLocaleString("id-ID")}`;

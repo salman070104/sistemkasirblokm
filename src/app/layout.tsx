@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,12 +35,32 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('pos_theme') || 'system';
+                const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (isDark) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body className="flex h-full min-h-full">
-        <Sidebar />
-        <main className="flex-1 flex flex-col min-h-0 overflow-auto bg-muted/30 pt-14 pb-20 lg:pt-0 lg:pb-0">
-          {children}
-        </main>
+        <ThemeProvider>
+          <Sidebar />
+          <main className="flex-1 flex flex-col min-h-0 overflow-auto bg-muted/30 pt-14 pb-20 lg:pt-0 lg:pb-0">
+            {children}
+          </main>
+        </ThemeProvider>
         <Script id="register-sw" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
