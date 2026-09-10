@@ -62,11 +62,17 @@ Langkah mengaktifkan mode Auto-Print:
 ## ⚙️ Langkah 4: Aktifkan Fitur di Menu Pengaturan Aplikasi Kasir
 1. Buka aplikasi kasir **Blok M Studio** di PC Windows Anda.
 2. Di menu samping kiri (sidebar), klik **Pengaturan**.
-3. Pada kartu **Printer & Struk Nota**:
-   * Nyalakan saklar: **Cetak Struk Setelah Transaksi** (Ubah ke *AKTIF*).
+3. **Pilihan 1 - Sambungkan Langsung dari Program (WebUSB):**
+   * Di kartu *Printer & Struk Nota*, klik tombol **`🔌 Sambungkan Printer USB`**.
+   * Pilih nama printer thermal USB Anda dari jendela pop-up Chrome/Edge.
+   * Printer akan tersimpan sebagai printer default aplikasi. Anda bisa klik **`🧪 Tes Print USB`** untuk menguji cetak!
+4. **Pilihan 2 - Gunakan Mode Kiosk Windows (Langkah 3):**
+   * Nyalakan saklar: **Fitur Cetak Struk** (Ubah ke *AKTIF* saat mesin sudah ada).
    * Nyalakan saklar: **⚡ Cetak Otomatis (Auto-Print Saat Bayar)** (Ubah ke *AKTIF*).
    * Pilih ukuran kertas default Anda: **58 mm** atau **80 mm**.
-4. Klik tombol **Simpan Pengaturan**.
+5. Klik tombol **Simpan Pengaturan**.
+
+> ⚠️ **Catatan Penting:** Untuk saat ini, pengaturan cetak struk **tetap disetel MATI (OFF)** oleh sistem karena mesin fisik belum dibeli. Anda bisa menyalakannya kapan saja setelah printer thermal Anda tiba.
 
 ---
 

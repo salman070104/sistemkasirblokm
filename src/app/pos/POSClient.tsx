@@ -9,6 +9,7 @@ import { Search, Plus, Minus, Trash2, CheckCircle2, ShoppingCart, Sparkles, Pack
 import Image from "next/image";
 import { processTransaction } from "../actions/transaction";
 import CameraScanner from "./CameraScanner";
+import { getConnectedUsbDevice, buildEscPosBytes, sendToUsbPrinter } from "@/lib/usbPrinter";
 
 type Product = {
   id: number;
@@ -165,26 +166,56 @@ export default function POSClient({ products }: { products: Product[] }) {
     setIsProcessing(false);
 
     if (res.success) {
-      setSuccessData({ 
+      const newReceipt: ReceiptData = { 
         receiptNumber: res.receiptNumber || `TRX-${Date.now()}`,
         date: res.createdAt ? new Date(res.createdAt) : new Date(),
         items: currentItems,
         total: totalAmount,
         cash: cashNum,
         change: changeAmount 
-      });
+      };
+
+      setSuccessData(newReceipt);
       setCart([]);
       setCashAmount("");
 
-      // Jika cetak struk aktif dan auto-print aktif, langsung cetak otomatis
+      // Jika cetak struk aktif dan auto-print aktif, langsung cetak otomatis (USB jika ada, atau sistem)
       if (printEnabled && autoPrint) {
         setTimeout(() => {
-          window.print();
+          handlePrintReceipt(newReceipt);
         }, 150);
       }
     } else {
       alert(res.error || "Gagal checkout");
     }
+  };
+
+  const handlePrintReceipt = async (receiptData?: ReceiptData) => {
+    const dataToPrint = receiptData || successData;
+    if (!dataToPrint) return;
+
+    try {
+      const usbDevice = await getConnectedUsbDevice();
+      if (usbDevice) {
+        const bytes = buildEscPosBytes(dataToPrint, {
+          name: storeConfig.name,
+          tagline: storeConfig.tagline,
+          address: storeConfig.address,
+          phone: storeConfig.phone,
+          footer: storeConfig.footer,
+          paperWidth: storeConfig.paperWidth as any,
+        });
+        const res = await sendToUsbPrinter(bytes);
+        if (res.success) {
+          return; // Berhasil cetak via WebUSB tanpa pop-up!
+        }
+      }
+    } catch {
+      // Fallback ke window.print jika WebUSB tidak terhubung
+    }
+
+    // Fallback standard browser print
+    window.print();
   };
 
   const handleCloseSuccess = () => {
@@ -657,7 +688,7 @@ export default function POSClient({ products }: { products: Product[] }) {
                     <Button 
                       variant="default" 
                       className="flex-1 rounded-xl shadow-md gap-1.5 bg-primary text-primary-foreground font-semibold" 
-                      onClick={() => window.print()}
+                      onClick={() => handlePrintReceipt()}
                     >
                       <Printer className="h-4 w-4" />
                       Cetak Struk ({storeConfig.paperWidth})

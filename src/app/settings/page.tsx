@@ -5,9 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Printer, Store, Check, Save, RotateCcw } from "lucide-react";
+import { Printer, Store, Check, Save, RotateCcw, Usb, Unplug, CheckCircle2, AlertCircle } from "lucide-react";
+import { 
+  isWebUsbSupported, 
+  requestUsbPrinter, 
+  getConnectedUsbDevice, 
+  buildEscPosBytes, 
+  sendToUsbPrinter 
+} from "@/lib/usbPrinter";
 
 export default function SettingsPage() {
+  // Pengaturan cetak: DEFAULT MATI (OFF) karena mesin belum dibeli
   const [printEnabled, setPrintEnabled] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
   const [paperWidth, setPaperWidth] = useState<"58mm" | "80mm">("58mm");
@@ -18,8 +26,16 @@ export default function SettingsPage() {
   const [storeFooter, setStoreFooter] = useState("Terima Kasih Atas Kunjungan Anda!");
   const [isSaved, setIsSaved] = useState(false);
 
+  // Status Perangkat WebUSB
+  const [usbSupported, setUsbSupported] = useState(false);
+  const [usbDeviceName, setUsbDeviceName] = useState<string | null>(null);
+  const [usbStatusMsg, setUsbStatusMsg] = useState<string | null>(null);
+  const [isTestingUsb, setIsTestingUsb] = useState(false);
+
   // Load from localStorage
   useEffect(() => {
+    setUsbSupported(isWebUsbSupported());
+
     const savedPrint = localStorage.getItem("pos_print_enabled");
     if (savedPrint !== null) {
       setPrintEnabled(savedPrint === "true");
@@ -31,7 +47,7 @@ export default function SettingsPage() {
     if (savedAutoPrint !== null) {
       setAutoPrint(savedAutoPrint === "true");
     } else {
-      setAutoPrint(false);
+      setAutoPrint(false); // Default OFF
     }
 
     const savedWidth = localStorage.getItem("pos_paper_width");
@@ -51,7 +67,67 @@ export default function SettingsPage() {
 
     const savedFooter = localStorage.getItem("pos_store_footer");
     if (savedFooter) setStoreFooter(savedFooter);
+
+    // Cek apakah ada printer USB yang sudah tersimpan
+    const savedUsbName = localStorage.getItem("pos_usb_printer_name");
+    if (savedUsbName) {
+      setUsbDeviceName(savedUsbName);
+    }
   }, []);
+
+  const handleConnectUsb = async () => {
+    setUsbStatusMsg(null);
+    const res = await requestUsbPrinter();
+    if (res.success && res.deviceName) {
+      setUsbDeviceName(res.deviceName);
+      setUsbStatusMsg("✅ Berhasil menghubungkan: " + res.deviceName);
+    } else if (res.error) {
+      setUsbStatusMsg("⚠️ " + res.error);
+    }
+  };
+
+  const handleDisconnectUsb = () => {
+    localStorage.removeItem("pos_usb_printer_name");
+    localStorage.removeItem("pos_usb_vendor_id");
+    localStorage.removeItem("pos_usb_product_id");
+    setUsbDeviceName(null);
+    setUsbStatusMsg("Printer USB telah diputuskan.");
+  };
+
+  const handleTestPrintUsb = async () => {
+    setIsTestingUsb(true);
+    setUsbStatusMsg(null);
+
+    const testData = {
+      receiptNumber: "TES-PRINT-01",
+      date: new Date(),
+      items: [
+        { name: "Tes Komunikasi USB", quantity: 1, price: 0 }
+      ],
+      total: 0,
+      cash: 0,
+      change: 0,
+    };
+
+    const config = {
+      name: storeName,
+      tagline: storeTagline,
+      address: storeAddress,
+      phone: storePhone,
+      footer: storeFooter,
+      paperWidth: paperWidth,
+    };
+
+    const bytes = buildEscPosBytes(testData, config);
+    const res = await sendToUsbPrinter(bytes);
+    setIsTestingUsb(false);
+
+    if (res.success) {
+      setUsbStatusMsg("🎉 Perintah cetak berhasil dikirim ke printer USB!");
+    } else {
+      setUsbStatusMsg("⚠️ " + (res.error || "Gagal mencetak. Pastikan kabel USB terpasang rapat."));
+    }
+  };
 
   const handleSave = () => {
     localStorage.setItem("pos_print_enabled", printEnabled ? "true" : "false");
@@ -63,7 +139,7 @@ export default function SettingsPage() {
     localStorage.setItem("pos_store_phone", storePhone);
     localStorage.setItem("pos_store_footer", storeFooter);
 
-    // Trigger storage event so POSClient updates immediately if open in another tab
+    // Trigger storage event so POSClient updates immediately
     window.dispatchEvent(new Event("storage"));
 
     setIsSaved(true);
@@ -72,12 +148,14 @@ export default function SettingsPage() {
 
   const handleReset = () => {
     setPrintEnabled(false);
+    setAutoPrint(false);
     setPaperWidth("58mm");
     setStoreName("BLOK M STUDIO");
     setStoreTagline("PERCETAKAN & DIGITAL PRINTING");
     setStoreAddress("Jl. Raya Ciledug-Ketanggungan");
     setStorePhone("087858231341 / 087816548545");
     setStoreFooter("Terima Kasih Atas Kunjungan Anda!");
+    handleDisconnectUsb();
   };
 
   return (
@@ -86,7 +164,7 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Pengaturan Sistem</h2>
           <p className="text-muted-foreground text-sm">
-            Kelola preferensi kasir, printer nota struk, dan profil toko Anda.
+            Kelola preferensi kasir, koneksi printer nota struk, dan profil toko Anda.
           </p>
         </div>
         <div className="flex gap-2">
@@ -102,7 +180,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* PENGATURAN PRINTER */}
+        {/* PENGATURAN PRINTER & KONEKSI */}
         <Card className="rounded-2xl border-border/60 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -112,23 +190,23 @@ export default function SettingsPage() {
               <div>
                 <CardTitle className="text-lg">Printer & Struk Nota</CardTitle>
                 <CardDescription className="text-xs">
-                  Atur apakah sistem mewajibkan cetak nota atau langsung selesai
+                  Atur koneksi perangkat printer thermal dan saklar otomatis
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* TOGGLE ON / OFF */}
+            {/* MASTER TOGGLE ON / OFF */}
             <div className="p-4 rounded-xl border border-border/80 bg-muted/30 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="print-toggle" className="font-semibold text-sm cursor-pointer">
-                    Cetak Struk Setelah Transaksi
+                    Fitur Cetak Struk
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {printEnabled
-                      ? "Aktif: Dialog cetak nota akan muncul setiap transaksi."
-                      : "Nonaktif: Transaksi langsung tercatat & selesai tanpa cetak nota."}
+                      ? "Aktif: Sistem akan mencetak nota setiap transaksi kasir."
+                      : "Nonaktif (Sementara): Transaksi langsung tercatat tanpa print."}
                   </p>
                 </div>
                 {/* Switch Button */}
@@ -149,7 +227,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Status Saat Ini:</span>
+                <span className="text-muted-foreground">Status Sistem:</span>
                 <span
                   className={`px-2.5 py-0.5 rounded-full font-semibold ${
                     printEnabled
@@ -157,9 +235,84 @@ export default function SettingsPage() {
                       : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                   }`}
                 >
-                  {printEnabled ? "🟢 AKTIF (Ada Printer)" : "🟡 NONAKTIF (Belum Ada Mesin)"}
+                  {printEnabled ? "🟢 AKTIF" : "🟡 NONAKTIF (Saat ini dimatikan)"}
                 </span>
               </div>
+            </div>
+
+            {/* KONEKSI PRINTER USB LANGSUNG (WEBUSB / DARI DALAM PROGRAM) */}
+            <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Usb className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-sm text-foreground">Sambungan Printer USB</span>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                  usbDeviceName 
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {usbDeviceName ? "🟢 Terhubung" : "⚪ Belum Ada Perangkat"}
+                </span>
+              </div>
+
+              <div className="text-xs text-muted-foreground bg-background/80 p-3 rounded-xl border border-border/60">
+                <div className="flex justify-between items-center">
+                  <span>Perangkat Terpilih:</span>
+                  <span className="font-semibold text-foreground truncate max-w-[180px]">
+                    {usbDeviceName || "Belum ada printer dipilih"}
+                  </span>
+                </div>
+              </div>
+
+              {usbStatusMsg && (
+                <p className="text-xs font-medium text-primary animate-float-in">
+                  {usbStatusMsg}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleConnectUsb}
+                  className="rounded-xl gap-1.5 text-xs border-primary/30 hover:bg-primary/10 text-primary font-medium"
+                >
+                  <Usb className="h-3.5 w-3.5" />
+                  {usbDeviceName ? "Ganti / Pilih Printer USB" : "🔌 Sambungkan Printer USB"}
+                </Button>
+
+                {usbDeviceName && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleTestPrintUsb}
+                      disabled={isTestingUsb}
+                      className="rounded-xl gap-1.5 text-xs font-medium"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      {isTestingUsb ? "Mencetak..." : "🧪 Tes Print USB"}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDisconnectUsb}
+                      className="rounded-xl text-xs text-destructive hover:bg-destructive/10"
+                    >
+                      <Unplug className="h-3.5 w-3.5" />
+                      Putuskan
+                    </Button>
+                  </>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                *Cukup sambungkan kabel USB printer thermal Anda ke PC, lalu klik tombol di atas untuk memilih printer Anda secara langsung dari dalam program.
+              </p>
             </div>
 
             {/* TOGGLE AUTO PRINT */}
@@ -189,17 +342,12 @@ export default function SettingsPage() {
                     />
                   </button>
                 </div>
-                {autoPrint && (
-                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
-                    💡 Tips PC Windows: Aktifkan mode <code>--kiosk-printing</code> pada shortcut aplikasi agar dialog cetak tidak muncul sama sekali!
-                  </p>
-                )}
               </div>
             )}
 
             {/* UKURAN KERTAS */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold">Ukuran Kertas Thermal Default</Label>
+              <Label className="text-xs font-semibold">Ukuran Kertas Thermal</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -226,14 +374,6 @@ export default function SettingsPage() {
                   <div className="text-[11px] text-muted-foreground font-normal">Ukuran standar kasir</div>
                 </button>
               </div>
-            </div>
-
-            <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 text-xs text-muted-foreground space-y-1">
-              <p className="font-semibold text-primary">💡 Catatan Penggunaan:</p>
-              <p>
-                Jika Anda belum membeli printer thermal, biarkan opsi ini <strong>NONAKTIF</strong>. 
-                Semua transaksi kasir tetap 100% tersimpan otomatis ke laporan & riwayat tanpa terganggu proses print.
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -303,7 +443,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Pratinjau Kertas Nota Struk</CardTitle>
           <CardDescription className="text-xs">
-            Begini tampilan nota fisik yang akan tercetak di printer thermal sesuai pengaturan di atas
+            Tampilan nota fisik yang akan tercetak di printer thermal sesuai pengaturan di atas
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center p-4 pb-6">
