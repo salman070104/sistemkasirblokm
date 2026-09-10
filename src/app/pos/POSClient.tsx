@@ -54,7 +54,51 @@ export default function POSClient({ products }: { products: Product[] }) {
   const [successData, setSuccessData] = useState<ReceiptData | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [printEnabled, setPrintEnabled] = useState(false);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [storeConfig, setStoreConfig] = useState({
+    name: "BLOK M STUDIO",
+    tagline: "PERCETAKAN & DIGITAL PRINTING",
+    address: "Jl. Raya Ciledug-Ketanggungan",
+    phone: "087858231341 / 087816548545",
+    footer: "Terima Kasih Atas Kunjungan Anda!",
+    paperWidth: "58mm",
+  });
   const router = useRouter();
+
+  // Load pengaturan print & toko dari localStorage
+  useEffect(() => {
+    const loadSettings = () => {
+      const savedPrint = localStorage.getItem("pos_print_enabled");
+      setPrintEnabled(savedPrint === "true");
+
+      const savedName = localStorage.getItem("pos_store_name");
+      const savedTagline = localStorage.getItem("pos_store_tagline");
+      const savedAddress = localStorage.getItem("pos_store_address");
+      const savedPhone = localStorage.getItem("pos_store_phone");
+      const savedFooter = localStorage.getItem("pos_store_footer");
+      const savedWidth = localStorage.getItem("pos_paper_width");
+
+      setStoreConfig({
+        name: savedName || "BLOK M STUDIO",
+        tagline: savedTagline || "PERCETAKAN & DIGITAL PRINTING",
+        address: savedAddress || "Jl. Raya Ciledug-Ketanggungan",
+        phone: savedPhone || "087858231341 / 087816548545",
+        footer: savedFooter || "Terima Kasih Atas Kunjungan Anda!",
+        paperWidth: savedWidth || "58mm",
+      });
+    };
+
+    loadSettings();
+    window.addEventListener("storage", loadSettings);
+    return () => window.removeEventListener("storage", loadSettings);
+  }, []);
+
+  const togglePrintEnabled = () => {
+    const nextVal = !printEnabled;
+    setPrintEnabled(nextVal);
+    localStorage.setItem("pos_print_enabled", nextVal ? "true" : "false");
+  };
 
   // Polling data produk setiap 5 detik agar auto-update tanpa hard refresh
   useEffect(() => {
@@ -134,6 +178,7 @@ export default function POSClient({ products }: { products: Product[] }) {
 
   const handleCloseSuccess = () => {
     setSuccessData(null);
+    setShowReceiptPreview(false);
     setIsCheckoutOpen(false);
     setMobileCartOpen(false);
   };
@@ -235,17 +280,30 @@ export default function POSClient({ products }: { products: Product[] }) {
               </Button>
             </div>
             <CameraScanner products={products} onProductFound={addToCart} />
+            <button
+              type="button"
+              onClick={togglePrintEnabled}
+              className={`h-8 lg:h-9 px-2.5 rounded-xl text-xs flex items-center gap-1.5 border transition-all font-medium ${
+                printEnabled
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                  : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
+              }`}
+              title="Klik untuk ON/OFF fitur cetak struk"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              <span>Struk: {printEnabled ? "ON" : "OFF (Sementara)"}</span>
+            </button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
                 setSuccessData(DEMO_RECEIPT);
+                setShowReceiptPreview(true);
                 setIsCheckoutOpen(true);
               }}
               className="h-8 lg:h-9 rounded-xl text-xs gap-1.5 border-dashed border-primary/40 hover:bg-primary/5 text-primary font-medium"
               title="Lihat Contoh Format Struk Blok M Studio"
             >
-              <Printer className="h-3.5 w-3.5" />
               Contoh Struk
             </Button>
           </div>
@@ -468,91 +526,137 @@ export default function POSClient({ products }: { products: Product[] }) {
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
                 <h2 className="text-lg font-bold text-foreground">
-                  {successData.receiptNumber.includes("8821") ? "Contoh Struk Percetakan" : "Transaksi Berhasil! 🎉"}
+                  {successData.receiptNumber.includes("8821") ? "Contoh Struk Percetakan" : "Transaksi Berhasil Dicatat! 🎉"}
                 </h2>
               </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Data penjualan telah tersimpan otomatis ke database & laporan.
+              </p>
 
-              {/* ─── Kertas Struk Thermal Preview (Blok M Studio Percetakan) ─── */}
-              <div className="w-full max-w-[340px] bg-white text-neutral-900 p-4 rounded-xl border border-dashed border-neutral-300 shadow-sm font-mono text-xs leading-relaxed text-left">
-                {/* Header Toko */}
-                <div className="text-center space-y-0.5 pb-2">
-                  <h3 className="font-extrabold text-sm tracking-tight text-neutral-950">BLOK M STUDIO</h3>
-                  <p className="font-semibold text-[11px] text-neutral-800">PERCETAKAN & DIGITAL PRINTING</p>
-                  <p className="text-[10px] text-neutral-600">Jl. Raya Ciledug-Ketanggungan</p>
-                  <p className="text-[10px] text-neutral-600">Telp/WA: 087858231341 / 087816548545</p>
-                </div>
-
-                <div className="border-b border-dashed border-neutral-400 my-2" />
-
-                {/* Metadata Transaksi */}
-                <div className="text-[10px] text-neutral-600 space-y-0.5">
-                  <div className="flex justify-between">
-                    <span>No: {successData.receiptNumber}</span>
-                    <span>Kasir: Salman</span>
+              {/* JIKA CETAK STRUK NONAKTIF (TAMPILAN CEPAT TANPA PRINT) */}
+              {!printEnabled && !successData.receiptNumber.includes("8821") && !showReceiptPreview ? (
+                <div className="w-full space-y-3 mt-1">
+                  <div className="bg-muted/40 w-full p-4 rounded-xl space-y-2.5 text-left border border-border/60">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Tagihan</span>
+                      <span className="font-semibold">Rp {successData.total.toLocaleString("id-ID")}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Uang Tunai</span>
+                      <span className="font-semibold">Rp {successData.cash.toLocaleString("id-ID")}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-border/80 pt-2.5 text-base">
+                      <span className="font-bold">Kembalian</span>
+                      <span className="font-bold text-emerald-600 text-xl">
+                        Rp {successData.change.toLocaleString("id-ID")}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Tgl: {new Date(successData.date).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</span>
-                    <span>Tunai</span>
+
+                  <div className="pt-2 space-y-2 text-center">
+                    <Button 
+                      className="w-full h-11 rounded-xl shadow-lg shadow-primary/25 font-bold" 
+                      onClick={handleCloseSuccess}
+                      autoFocus
+                    >
+                      Selesai & Transaksi Baru 🚀
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setShowReceiptPreview(true)}
+                      className="text-xs text-muted-foreground hover:text-primary underline underline-offset-4 py-1 inline-flex items-center gap-1"
+                    >
+                      <Printer className="h-3 w-3" />
+                      Tampilkan / Cetak Nota (Opsional)
+                    </button>
                   </div>
                 </div>
+              ) : (
+                /* JIKA CETAK STRUK AKTIF ATAU USER INGIN LIHAT NOTA */
+                <div className="w-full flex flex-col items-center space-y-3 animate-float-in">
+                  {/* Kertas Struk Thermal Preview */}
+                  <div className="w-full max-w-[340px] bg-white text-neutral-900 p-4 rounded-xl border border-dashed border-neutral-300 shadow-sm font-mono text-xs leading-relaxed text-left">
+                    {/* Header Toko Dinamis */}
+                    <div className="text-center space-y-0.5 pb-2">
+                      <h3 className="font-extrabold text-sm tracking-tight text-neutral-950">{storeConfig.name}</h3>
+                      <p className="font-semibold text-[11px] text-neutral-800">{storeConfig.tagline}</p>
+                      <p className="text-[10px] text-neutral-600">{storeConfig.address}</p>
+                      <p className="text-[10px] text-neutral-600">Telp/WA: {storeConfig.phone}</p>
+                    </div>
 
-                <div className="border-b border-dashed border-neutral-400 my-2" />
+                    <div className="border-b border-dashed border-neutral-400 my-2" />
 
-                {/* Daftar Barang Belanjaan */}
-                <div className="space-y-1.5 py-1">
-                  {successData.items.map((item, idx) => (
-                    <div key={idx} className="space-y-0.5">
-                      <div className="font-medium text-neutral-900 line-clamp-1">{item.name}</div>
-                      <div className="flex justify-between text-neutral-600 text-[10px]">
-                        <span>{item.quantity} x Rp {item.price.toLocaleString("id-ID")}</span>
-                        <span className="font-semibold text-neutral-950">Rp {(item.quantity * item.price).toLocaleString("id-ID")}</span>
+                    {/* Metadata Transaksi */}
+                    <div className="text-[10px] text-neutral-600 space-y-0.5">
+                      <div className="flex justify-between">
+                        <span>No: {successData.receiptNumber}</span>
+                        <span>Kasir: Salman</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tgl: {new Date(successData.date).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</span>
+                        <span>Tunai</span>
                       </div>
                     </div>
-                  ))}
-                </div>
 
-                <div className="border-b border-dashed border-neutral-400 my-2" />
+                    <div className="border-b border-dashed border-neutral-400 my-2" />
 
-                {/* Total & Pembayaran */}
-                <div className="space-y-1 text-[11px] pt-1">
-                  <div className="flex justify-between font-bold text-xs text-neutral-950">
-                    <span>TOTAL</span>
-                    <span>Rp {successData.total.toLocaleString("id-ID")}</span>
+                    {/* Daftar Barang Belanjaan */}
+                    <div className="space-y-1.5 py-1">
+                      {successData.items.map((item, idx) => (
+                        <div key={idx} className="space-y-0.5">
+                          <div className="font-medium text-neutral-900 line-clamp-1">{item.name}</div>
+                          <div className="flex justify-between text-neutral-600 text-[10px]">
+                            <span>{item.quantity} x Rp {item.price.toLocaleString("id-ID")}</span>
+                            <span className="font-semibold text-neutral-950">Rp {(item.quantity * item.price).toLocaleString("id-ID")}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="border-b border-dashed border-neutral-400 my-2" />
+
+                    {/* Total & Pembayaran */}
+                    <div className="space-y-1 text-[11px] pt-1">
+                      <div className="flex justify-between font-bold text-xs text-neutral-950">
+                        <span>TOTAL</span>
+                        <span>Rp {successData.total.toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-neutral-700">
+                        <span>Bayar (Tunai)</span>
+                        <span>Rp {successData.cash.toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-neutral-700 font-medium">
+                        <span>Kembalian</span>
+                        <span className="text-emerald-700 font-bold">Rp {successData.change.toLocaleString("id-ID")}</span>
+                      </div>
+                    </div>
+
+                    <div className="border-b border-dashed border-neutral-400 my-2" />
+
+                    {/* Footer Struk */}
+                    <div className="text-center space-y-1 text-[9px] text-neutral-600 pt-1">
+                      <p className="font-bold text-neutral-800">{storeConfig.footer}</p>
+                      <p>Simpan nota ini sebagai bukti sah pembayaran & pengambilan hasil cetakan.</p>
+                      <p className="tracking-widest font-mono text-[8px] pt-0.5">*** LUNAS ***</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-neutral-700">
-                    <span>Bayar (Tunai)</span>
-                    <span>Rp {successData.cash.toLocaleString("id-ID")}</span>
-                  </div>
-                  <div className="flex justify-between text-neutral-700 font-medium">
-                    <span>Kembalian</span>
-                    <span className="text-emerald-700 font-bold">Rp {successData.change.toLocaleString("id-ID")}</span>
+
+                  {/* Action Buttons */}
+                  <div className="w-full flex gap-2 pt-2">
+                    <Button 
+                      variant="default" 
+                      className="flex-1 rounded-xl shadow-md gap-1.5 bg-primary text-primary-foreground font-semibold" 
+                      onClick={() => window.print()}
+                    >
+                      <Printer className="h-4 w-4" />
+                      Cetak Struk ({storeConfig.paperWidth})
+                    </Button>
+                    <Button variant="outline" className="rounded-xl px-4" onClick={handleCloseSuccess}>
+                      Tutup
+                    </Button>
                   </div>
                 </div>
-
-                <div className="border-b border-dashed border-neutral-400 my-2" />
-
-                {/* Footer Struk */}
-                <div className="text-center space-y-1 text-[9px] text-neutral-600 pt-1">
-                  <p className="font-bold text-neutral-800">Terima Kasih Atas Kunjungan Anda!</p>
-                  <p>Simpan nota ini sebagai bukti sah pembayaran & pengambilan hasil cetakan.</p>
-                  <p className="tracking-widest font-mono text-[8px] pt-0.5">*** LUNAS ***</p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="w-full flex gap-2 pt-2">
-                <Button 
-                  variant="default" 
-                  className="flex-1 rounded-xl shadow-md gap-1.5 bg-primary text-primary-foreground font-semibold" 
-                  onClick={() => window.print()}
-                >
-                  <Printer className="h-4 w-4" />
-                  Cetak Struk (58mm)
-                </Button>
-                <Button variant="outline" className="rounded-xl px-4" onClick={handleCloseSuccess}>
-                  Tutup
-                </Button>
-              </div>
+              )}
             </div>
           )}
         </DialogContent>
@@ -562,10 +666,10 @@ export default function POSClient({ products }: { products: Product[] }) {
       {successData && (
         <div id="printable-receipt" style={{ display: "none" }}>
           <div style={{ textAlign: "center", marginBottom: "6px" }}>
-            <div style={{ fontSize: "13px", fontWeight: "bold", letterSpacing: "0.5px" }}>BLOK M STUDIO</div>
-            <div style={{ fontSize: "11px", fontWeight: "bold" }}>PERCETAKAN & DIGITAL PRINTING</div>
-            <div style={{ fontSize: "9px" }}>Jl. Raya Ciledug-Ketanggungan</div>
-            <div style={{ fontSize: "9px" }}>Telp/WA: 087858231341 / 087816548545</div>
+            <div style={{ fontSize: "13px", fontWeight: "bold", letterSpacing: "0.5px" }}>{storeConfig.name}</div>
+            <div style={{ fontSize: "11px", fontWeight: "bold" }}>{storeConfig.tagline}</div>
+            <div style={{ fontSize: "9px" }}>{storeConfig.address}</div>
+            <div style={{ fontSize: "9px" }}>Telp/WA: {storeConfig.phone}</div>
           </div>
 
           <div style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
@@ -617,7 +721,7 @@ export default function POSClient({ products }: { products: Product[] }) {
           <div style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
 
           <div style={{ textAlign: "center", fontSize: "9px", marginTop: "6px", lineHeight: "1.2" }}>
-            <div style={{ fontWeight: "bold" }}>Terima Kasih Telah Berkunjung!</div>
+            <div style={{ fontWeight: "bold" }}>{storeConfig.footer}</div>
             <div style={{ marginTop: "2px" }}>Simpan nota ini sebagai bukti sah pengambilan barang.</div>
             <div style={{ marginTop: "4px", letterSpacing: "2px" }}>*** LUNAS ***</div>
           </div>
