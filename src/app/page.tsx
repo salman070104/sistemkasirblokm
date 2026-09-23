@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, ShoppingBag, Package, TrendingUp, ArrowUpRight, Clock } from "lucide-react";
+import { DollarSign, ShoppingBag, Package, TrendingUp, ArrowUpRight, Clock, Award } from "lucide-react";
 import db from "@/lib/db";
 import { startOfDay, startOfMonth, format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -31,11 +31,39 @@ export default async function Home() {
     (sum, trx) => sum + Number(trx.totalAmount), 0
   );
 
-  const lowStockProducts = await db.product.findMany({
-    where: { stock: { lte: 5 } },
-    orderBy: { stock: "asc" },
+  const topItems = await db.transactionItem.groupBy({
+    by: ['productId'],
+    _sum: {
+      quantity: true,
+    },
+    where: {
+      productId: { not: null },
+    },
+    orderBy: {
+      _sum: {
+        quantity: 'desc',
+      },
+    },
     take: 5,
   });
+
+  const productIds = topItems
+    .map(item => item.productId)
+    .filter((id): id is number => id !== null);
+
+  const productsMap = await db.product.findMany({
+    where: { id: { in: productIds } },
+  });
+
+  const topSellingProducts = topItems.map(item => {
+    const product = productsMap.find(p => p.id === item.productId);
+    return {
+      id: item.productId,
+      name: product?.name || "Produk",
+      price: product?.price ? Number(product.price) : 0,
+      totalSold: item._sum.quantity || 0,
+    };
+  }).filter(p => p.name !== "Produk");
 
   return (
     <div className="p-6 lg:p-8 space-y-8">
@@ -111,7 +139,7 @@ export default async function Home() {
                 {totalProducts}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Barang aktif di inventaris
+                Barang aktif di katalog
               </p>
             </div>
           </CardContent>
@@ -169,39 +197,35 @@ export default async function Home() {
           </CardContent>
         </Card>
 
-        {/* Stok Menipis */}
+        {/* Produk Terlaris */}
         <Card className="animate-float-in-delay-1">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold">Stok Menipis</h3>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">Produk Terlaris</h3>
+              <Award className="h-4 w-4 text-primary" />
             </div>
-            {lowStockProducts.length === 0 ? (
+            {topSellingProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
                 <Package className="h-10 w-10 opacity-20 mb-3" />
-                <p className="text-sm">Semua produk stoknya aman</p>
+                <p className="text-sm">Belum ada data penjualan produk</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {lowStockProducts.map((product: any) => (
+                {topSellingProducts.map((product, idx) => (
                   <div key={product.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                        <Package className="h-4 w-4 text-amber-600" />
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                        #{idx + 1}
                       </div>
                       <div>
                         <p className="text-sm font-medium">{product.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Rp {Number(product.price).toLocaleString("id-ID")}
+                          Rp {product.price.toLocaleString("id-ID")}
                         </p>
                       </div>
                     </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                      product.stock === 0
-                        ? "bg-red-500/10 text-red-600"
-                        : "bg-amber-500/10 text-amber-600"
-                    }`}>
-                      {product.stock === 0 ? "Habis" : `Sisa ${product.stock}`}
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                      {product.totalSold} terjual
                     </span>
                   </div>
                 ))}

@@ -701,7 +701,7 @@ export default function SettingsPage() {
                         <div className="space-y-0.5">
                           <div className="font-medium text-sm">Bunyi Peringatan / Uang Kurang</div>
                           <p className="text-xs text-muted-foreground">
-                            Bunyi peringatan jika stok habis atau uang tunai yang diinput kurang.
+                            Bunyi peringatan jika uang tunai yang diinput kurang.
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">

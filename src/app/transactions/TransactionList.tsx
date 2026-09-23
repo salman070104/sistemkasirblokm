@@ -15,7 +15,6 @@ export default function TransactionList({ transactions }: { transactions: any[] 
   const [isOpen, setIsOpen] = useState(false);
   const [trxToDelete, setTrxToDelete] = useState<any>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [restoreStock, setRestoreStock] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
@@ -23,7 +22,7 @@ export default function TransactionList({ transactions }: { transactions: any[] 
     if (!trxToDelete) return;
     setIsDeleting(true);
 
-    const res = await deleteTransaction(trxToDelete.id, restoreStock);
+    const res = await deleteTransaction(trxToDelete.id);
     setIsDeleting(false);
 
     if (res.success) {
@@ -218,22 +217,6 @@ export default function TransactionList({ transactions }: { transactions: any[] 
                   </span>
                 </div>
               </div>
-
-              {/* Opsi Kembalikan Stok */}
-              <label className="flex items-start gap-2.5 p-3 rounded-xl border border-primary/20 bg-primary/5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={restoreStock}
-                  onChange={(e) => setRestoreStock(e.target.checked)}
-                  className="mt-0.5 rounded accent-primary h-4 w-4"
-                />
-                <div className="text-xs">
-                  <span className="font-semibold text-foreground">Kembalikan stok produk otomatis</span>
-                  <p className="text-muted-foreground text-[11px] mt-0.5">
-                    Centang ini jika transaksi tadi merupakan uji coba, agar stok barang tidak berkurang di inventaris.
-                  </p>
-                </div>
-              </label>
             </div>
           )}
 

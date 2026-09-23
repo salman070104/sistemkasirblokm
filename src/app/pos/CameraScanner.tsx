@@ -11,7 +11,6 @@ type Product = {
   name: string;
   sku: string | null;
   price: number;
-  stock: number;
   imageUrl: string | null;
 };
 

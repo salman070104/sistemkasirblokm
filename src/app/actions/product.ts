@@ -10,7 +10,6 @@ export async function createProduct(formData: FormData) {
     const description = formData.get("description") as string;
     const sku = formData.get("sku") as string;
     const price = parseFloat(formData.get("price") as string);
-    const stock = parseInt(formData.get("stock") as string, 10);
     const image = formData.get("image") as File;
 
     const existingProduct = await db.product.findFirst({
@@ -42,7 +41,6 @@ export async function createProduct(formData: FormData) {
         description,
         sku: sku || null,
         price,
-        stock,
         imageUrl,
       }
     });
@@ -95,7 +93,6 @@ export async function updateProduct(id: number, formData: FormData) {
     const description = formData.get("description") as string;
     const sku = formData.get("sku") as string;
     const price = parseFloat(formData.get("price") as string);
-    const stock = parseInt(formData.get("stock") as string, 10);
     const image = formData.get("image") as File;
     const removeImage = formData.get("removeImage") === "true";
 
@@ -133,7 +130,6 @@ export async function updateProduct(id: number, formData: FormData) {
         description,
         sku: sku || null,
         price,
-        stock,
         imageUrl,
       },
     });

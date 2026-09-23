@@ -37,18 +37,6 @@ export async function processTransaction(cartItems: CartItem[], cashAmount: numb
       }
     });
 
-    // Kurangi stok produk
-    for (const item of cartItems) {
-      await db.product.update({
-        where: { id: item.productId },
-        data: {
-          stock: {
-            decrement: item.quantity
-          }
-        }
-      });
-    }
-
     revalidatePath("/products");
     revalidatePath("/transactions");
     revalidatePath("/pos");
@@ -66,7 +54,7 @@ export async function processTransaction(cartItems: CartItem[], cashAmount: numb
   }
 }
 
-export async function deleteTransaction(transactionId: number, restoreStock: boolean = true) {
+export async function deleteTransaction(transactionId: number) {
   try {
     const trx = await db.transaction.findUnique({
       where: { id: transactionId },
@@ -78,24 +66,6 @@ export async function deleteTransaction(transactionId: number, restoreStock: boo
     }
 
     await db.$transaction(async (tx) => {
-      // Kembalikan stok produk jika restoreStock bernilai true
-      if (restoreStock) {
-        for (const item of trx.items) {
-          if (item.productId) {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: {
-                  increment: item.quantity
-                }
-              }
-            }).catch(() => {
-              // Jika produk sudah dihapus dari master data, abaikan penambahan stok
-            });
-          }
-        }
-      }
-
       // Hapus item-item transaksi terlebih dahulu
       await tx.transactionItem.deleteMany({
         where: { transactionId }

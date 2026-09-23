@@ -18,7 +18,6 @@ type ProductData = {
   description: string | null;
   sku: string | null;
   price: number;
-  stock: number;
   imageUrl: string | null;
 };
 
@@ -157,13 +156,9 @@ export default function EditProductForm({ product }: { product: ProductData }) {
             <div className="h-px bg-border/60" />
 
             <div className="grid gap-5 md:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="name" className="text-sm font-semibold">Nama Produk <span className="text-destructive">*</span></Label>
                 <Input id="name" name="name" required defaultValue={product.name} className="rounded-xl h-11" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sku" className="text-sm font-semibold">SKU / Barcode</Label>
-                <Input id="sku" name="sku" defaultValue={product.sku || ""} className="rounded-xl h-11 font-mono" />
               </div>
 
               <div className="space-y-2">
@@ -171,8 +166,8 @@ export default function EditProductForm({ product }: { product: ProductData }) {
                 <Input id="price" name="price" type="number" required defaultValue={product.price} min="0" className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="stock" className="text-sm font-semibold">Stok <span className="text-destructive">*</span></Label>
-                <Input id="stock" name="stock" type="number" required defaultValue={product.stock} min="0" className="rounded-xl h-11" />
+                <Label htmlFor="sku" className="text-sm font-semibold">SKU / Barcode</Label>
+                <Input id="sku" name="sku" defaultValue={product.sku || ""} className="rounded-xl h-11 font-mono" />
               </div>
             </div>
 

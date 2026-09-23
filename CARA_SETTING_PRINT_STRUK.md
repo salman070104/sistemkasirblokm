@@ -82,7 +82,7 @@ Langkah mengaktifkan mode Auto-Print:
 3. Klik tombol **Bayar**.
 4. Masukkan nominal uang tunai yang diterima, lalu klik **Selesaikan Pembayaran**.
 5. **Hasil:** Struk langsung tercetak otomatis dari mesin tanpa pop-up preview!
-6. *(Setelah uji coba selesai, Anda bisa menghapus transaksi uji coba tersebut di menu **Riwayat Transaksi** dan stok barang akan otomatis dipulihkan kembali).*
+6. *(Setelah uji coba selesai, Anda bisa menghapus transaksi uji coba tersebut di menu **Riwayat Transaksi**).*
 
 ---
 

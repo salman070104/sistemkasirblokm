@@ -17,7 +17,6 @@ type Product = {
   name: string;
   sku: string | null;
   price: number;
-  stock: number;
   imageUrl: string | null;
 };
 
@@ -157,18 +156,10 @@ export default function POSClient({ products }: { products: Product[] }) {
   );
 
   const addToCart = (product: Product) => {
-    if (product.stock <= 0) {
-      soundManager.playErrorBeep();
-      return;
-    }
     soundManager.playBarcodeBeep();
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock) {
-          soundManager.playErrorBeep();
-          return prev;
-        }
         return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
       return [...prev, { ...product, quantity: 1 }];
@@ -181,10 +172,6 @@ export default function POSClient({ products }: { products: Product[] }) {
       if (item.id === id) {
         const newQty = item.quantity + delta;
         if (newQty <= 0) return item;
-        if (newQty > item.stock) {
-          soundManager.playErrorBeep();
-          return item;
-        }
         return { ...item, quantity: newQty };
       }
       return item;
@@ -447,8 +434,8 @@ export default function POSClient({ products }: { products: Product[] }) {
                 <div 
                   key={product.id} 
                   className={`product-card bg-card rounded-xl lg:rounded-2xl border shadow-sm overflow-hidden cursor-pointer flex flex-col relative ${
-                    product.stock <= 0 ? "opacity-60 pointer-events-none" : ""
-                  } ${inCart ? "ring-2 ring-primary ring-offset-1 lg:ring-offset-2" : "border-border/60 hover:border-primary/40"}`}
+                    inCart ? "ring-2 ring-primary ring-offset-1 lg:ring-offset-2" : "border-border/60 hover:border-primary/40"
+                  }`}
                   onClick={() => addToCart(product)}
                 >
                   {inCart && (
@@ -463,11 +450,6 @@ export default function POSClient({ products }: { products: Product[] }) {
                     ) : (
                       <div className="flex items-center justify-center h-full text-muted-foreground/40">
                         <Package className="h-8 w-8 lg:h-10 lg:w-10" />
-                      </div>
-                    )}
-                    {product.stock <= 0 && (
-                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                        <span className="bg-destructive text-destructive-foreground text-[10px] lg:text-xs px-2 py-1 lg:px-3 lg:py-1.5 rounded-full font-semibold">Stok Habis</span>
                       </div>
                     )}
                   </div>
@@ -485,8 +467,8 @@ export default function POSClient({ products }: { products: Product[] }) {
                 <div 
                   key={product.id} 
                   className={`product-card bg-card rounded-xl border shadow-sm overflow-hidden cursor-pointer flex items-center relative p-2 gap-3 lg:gap-4 ${
-                    product.stock <= 0 ? "opacity-60 pointer-events-none" : ""
-                  } ${inCart ? "ring-2 ring-primary ring-offset-1" : "border-border/60 hover:border-primary/40"}`}
+                    inCart ? "ring-2 ring-primary ring-offset-1" : "border-border/60 hover:border-primary/40"
+                  }`}
                   onClick={() => addToCart(product)}
                 >
                   <div className="relative h-12 w-12 lg:h-16 lg:w-16 rounded-lg bg-muted/50 overflow-hidden flex-shrink-0">
@@ -495,11 +477,6 @@ export default function POSClient({ products }: { products: Product[] }) {
                     ) : (
                       <div className="flex items-center justify-center h-full text-muted-foreground/40">
                         <Package className="h-5 w-5 lg:h-6 lg:w-6" />
-                      </div>
-                    )}
-                    {product.stock <= 0 && (
-                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                        <span className="bg-destructive text-destructive-foreground text-[8px] px-1 py-0.5 rounded font-bold">Habis</span>
                       </div>
                     )}
                   </div>

@@ -107,13 +107,9 @@ export default function AddProductPage() {
             <div className="h-px bg-border/60" />
 
             <div className="grid gap-5 md:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="name" className="text-sm font-semibold">Nama Produk <span className="text-destructive">*</span></Label>
                 <Input id="name" name="name" required placeholder="Contoh: Kopi Susu" className="rounded-xl h-11" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sku" className="text-sm font-semibold">SKU / Barcode</Label>
-                <Input id="sku" name="sku" placeholder="Contoh: KS-001" className="rounded-xl h-11 font-mono" />
               </div>
               
               <div className="space-y-2">
@@ -121,8 +117,8 @@ export default function AddProductPage() {
                 <Input id="price" name="price" type="number" required placeholder="Contoh: 15000" min="0" className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="stock" className="text-sm font-semibold">Stok Awal <span className="text-destructive">*</span></Label>
-                <Input id="stock" name="stock" type="number" required placeholder="Contoh: 100" min="0" className="rounded-xl h-11" />
+                <Label htmlFor="sku" className="text-sm font-semibold">SKU / Barcode</Label>
+                <Input id="sku" name="sku" placeholder="Contoh: KS-001" className="rounded-xl h-11 font-mono" />
               </div>
             </div>
 
