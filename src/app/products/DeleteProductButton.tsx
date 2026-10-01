@@ -2,46 +2,55 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "lucide-react";
-import { deleteProduct } from "../actions/product";
-import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { DeleteProductDialog } from "./DeleteProductDialog";
 
-export function DeleteProductButton({ productId }: { productId: number }) {
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+interface DeleteProductButtonProps {
+  productId: number;
+  productName?: string;
+  sku?: string | null;
+  price?: number;
+  imageUrl?: string | null;
+  className?: string;
+}
 
-  const handleDelete = async () => {
-    if (!confirm("Apakah Anda yakin ingin menghapus produk ini?")) return;
-    
-    setLoading(true);
-    try {
-      const result = await deleteProduct(productId);
-      if (result.success) {
-        // Tidak perlu router.refresh() jika revalidatePath sudah dipanggil di Server Action,
-        // tapi sebagai fallback di client kita bisa memanggilnya:
-        // Namun sebenarnya akan lebih baik jika Action me-return success, dan biarkan Server yang me-refresh
-        // Tapi kadang router.refresh() membantu jika ada state client.
-      } else {
-        alert(result.error || "Gagal menghapus produk");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Terjadi kesalahan");
-    } finally {
-      setLoading(false);
-    }
-  };
+export function DeleteProductButton({ 
+  productId, 
+  productName = "Produk", 
+  sku = null, 
+  price = 0, 
+  imageUrl = null,
+  className
+}: DeleteProductButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Button 
-      type="button" 
-      onClick={handleDelete}
-      disabled={loading}
-      variant="ghost" 
-      size="icon" 
-      className="text-red-500/70 hover:text-red-600 hover:bg-red-500/10 rounded-lg"
-    >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-    </Button>
+    <>
+      <Button 
+        type="button" 
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(true);
+        }}
+        variant="ghost" 
+        size="icon" 
+        className={className || "text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl h-8 w-8"}
+        title="Hapus produk"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+
+      <DeleteProductDialog
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        product={{
+          id: productId,
+          name: productName,
+          sku,
+          price,
+          imageUrl,
+        }}
+      />
+    </>
   );
 }
